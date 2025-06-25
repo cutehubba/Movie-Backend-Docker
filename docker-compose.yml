@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  backend:
+    build: .
+    container_name: movie_backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/MovieTicket?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=123456
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - JWT_SECRET=yourVeryLongSecretKeyWithAtLeast256Bits
+      - JWT_EXPIRATION=3600000
+    depends_on:
+      - db
+    networks:
+      - movie_net
+
+  db:
+    image: mysql:8.0
+    container_name: movie_mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=MovieTicket
+      - TZ=Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./data.sql:/docker-entrypoint-initdb.d/data.sql
+    networks:
+      - movie_net
+
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: movie_jenkins
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - ./jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock  # <--- 新增这一行
+    networks:
+      - movie_net
+
+volumes:
+  db_data:
+
+networks:
+  movie_net:
