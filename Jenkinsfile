@@ -2,17 +2,23 @@ pipeline {
     agent any
 
     stages {
-        stage('Build and Run') {
+        stage('Build Java Application') {
             steps {
                 script {
-                    // 1. 拉取代码（如果未自动拉取）
-                    checkout scm
+                    echo '开始清理并打包 Spring Boot 应用程序...'
+                    bat 'mvn clean package -DskipTests'
+                    echo 'Maven 打包完成，已生成 JAR 文件。'
+                }
+            }
+        }
 
-                    // 2. 使用 Maven 编译并运行 Spring Boot
-                    bat 'mvn clean package spring-boot:run -Dspring-boot.run.profiles=jenkins'
-                    
-                    // 3. 或者后台运行（可选）
-                    // sh 'nohup mvn spring-boot:run > backend.log 2>&1 &'
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    echo '开始构建 Docker 镜像...'
+                    def dockerImage = "movie-backend:${env.BUILD_NUMBER}"
+                    bat "docker build -t ${dockerImage} ."
+                    echo "Docker 镜像 ${dockerImage} 构建成功。"
                 }
             }
         }
@@ -20,8 +26,17 @@ pipeline {
 
     post {
         always {
-            // 记录日志（可选）
-            archiveArtifacts artifacts: '**/backend.log', allowEmptyArchive: true
+            echo '流水线执行完毕，开始归档和清理...'
+            archiveArtifacts artifacts: 'target/*.jar', allowEmptyArchive: false
+            echo '已归档 JAR 文件。'
+            archiveArtifacts artifacts: 'backend.log', allowEmptyArchive: true
+            echo '已归档 backend.log (如果存在)。'
+        }
+        failure {
+            echo '流水线执行失败。请检查日志获取详细信息。'
+        }
+        success {
+            echo '流水线执行成功。'
         }
     }
 }
