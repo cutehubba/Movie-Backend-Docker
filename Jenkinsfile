@@ -1,40 +1,19 @@
 pipeline {
-  agent any
-
-  environment {
-    IMAGE_NAME = "springboot-cinema"
-  }
-
-  stages {
-    stage('拉取代码') {
-      steps {
-        git credentialsId: 'your-git-id', url: 'https://github.com/your-repo'
-      }
-    }
-
-    stage('构建后端 JAR') {
-      steps {
-        sh 'mvn clean package -DskipTests'
-      }
-    }
-
-    stage('重建镜像并部署') {
-      steps {
-        script {
-          sh 'docker-compose down'
-          sh 'docker-compose build --no-cache'
-          sh 'docker-compose up -d'
+    agent any
+    
+    stages {
+        stage('Run Backend') {
+            steps {
+                // 1. 拉取代码
+                checkout scm
+                
+                // 2. 直接运行Spring Boot应用 (阻塞式)
+                sh 'mvn spring-boot:run'
+                
+                // 或者后台运行 (非阻塞式，可选)
+                // sh 'nohup mvn spring-boot:run > backend.log 2>&1 &'
+                // sleep 30  // 等待启动
+            }
         }
-      }
     }
-  }
-
-  post {
-    success {
-      echo "🎉 部署成功！"
-    }
-    failure {
-      echo "❌ 构建或部署失败，请检查日志。"
-    }
-  }
 }
