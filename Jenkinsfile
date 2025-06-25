@@ -1,31 +1,27 @@
 pipeline {
     agent any
-    
+
     stages {
-        stage('Hello') {
+        stage('Build and Run') {
             steps {
-                echo '✅ 这个步骤永远不会失败'
-                sh 'echo "这是一个简单的Shell命令"'
-                sh 'ls -l'  // 列出当前目录文件（总是成功）
-            }
-        }
-        
-        stage('Generate Artifact') {
-            steps {
-                // 创建一个简单的文件作为"构建产物"
-                sh '''
-                    echo "构建时间: $(date)" > build-info.txt
-                    echo "构建ID: ${BUILD_ID}" >> build-info.txt
-                '''
-                
-              
+                script {
+                    // 1. 拉取代码（如果未自动拉取）
+                    checkout scm
+
+                    // 2. 使用 Maven 编译并运行 Spring Boot
+                    sh 'mvn clean package spring-boot:run -Dspring-boot.run.profiles=jenkins'
+                    
+                    // 3. 或者后台运行（可选）
+                    // sh 'nohup mvn spring-boot:run > backend.log 2>&1 &'
+                }
             }
         }
     }
-    
+
     post {
         always {
-            echo '🎉 流水线执行完成（无论成功与否都会显示）'
+            // 记录日志（可选）
+            archiveArtifacts artifacts: '**/backend.log', allowEmptyArchive: true
         }
     }
 }
